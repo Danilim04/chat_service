@@ -14,7 +14,7 @@ export class ChatwootWebhookController {
   @Post('webhook')
   @HttpCode(200)
   async handleWebhook(@Body() payload: ChatwootWebhookDto): Promise<{ status: string }> {
-    this.logger.log(`Webhook received: event=${payload.event}`);
+    this.logger.log(`Webhook received: event=${payload.event}, payload=${JSON.stringify(payload)}`);
 
     try {
       await this.chatwootWebhookService.processWebhook(payload);
