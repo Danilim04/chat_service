@@ -5,6 +5,7 @@ import {
   Protocolo,
   ProtocoloSchema,
 } from '../database/schemas/protocolo.schema.js';
+import { MessagesController } from './messages.controller.js';
 import { MessagesRepository } from './messages.repository.js';
 import { MessagesService } from './messages.service.js';
 
@@ -14,6 +15,7 @@ import { MessagesService } from './messages.service.js';
       { name: Protocolo.name, schema: ProtocoloSchema },
     ]),
   ],
+  controllers: [MessagesController],
   providers: [MessagesRepository, MessagesService],
   exports: [MessagesService],
 })

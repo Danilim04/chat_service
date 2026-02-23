@@ -23,6 +23,9 @@ export declare class ChatGateway implements OnGatewayInit, OnGatewayConnection, 
     handleLeaveRoom(client: Socket, data: {
         room: string;
     }): void;
+    handleGetHistory(client: Socket, data: {
+        room: string;
+    }): Promise<void>;
     handleSendMessage(client: Socket, data: CreateMessageDto): Promise<void>;
     handleMessageCreatedEvent(payload: {
         message: IChatMessage;

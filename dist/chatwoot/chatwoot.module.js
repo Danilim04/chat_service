@@ -22,7 +22,7 @@ exports.ChatwootModule = ChatwootModule = __decorate([
         imports: [
             axios_1.HttpModule.register({ timeout: 10000 }),
             messages_module_js_1.MessagesModule,
-            session_module_js_1.SessionModule,
+            (0, common_1.forwardRef)(() => session_module_js_1.SessionModule),
         ],
         controllers: [chatwoot_webhook_controller_js_1.ChatwootWebhookController],
         providers: [chatwoot_webhook_service_js_1.ChatwootWebhookService, chatwoot_api_service_js_1.ChatwootApiService],

@@ -41,10 +41,10 @@ export interface IChatwootLink {
   /** ID da conversa no Chatwoot */
   conversation_id: number;
 
-  /** ID do contato no Chatwoot */
-  contact_id: number;
+  /** ID do contato no Chatwoot (obtido automaticamente via API) */
+  contact_id?: number;
 
-  /** ID do inbox no Chatwoot */
+  /** ID do inbox no Chatwoot (obtido automaticamente via API) */
   inbox_id?: number;
 
   /** Se o vínculo está ativo */

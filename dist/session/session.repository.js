@@ -38,7 +38,7 @@ let SessionRepository = SessionRepository_1 = class SessionRepository {
     async linkChatwoot(protocolo, chatwootData) {
         this.logger.log(`Linking Chatwoot to protocolo=${protocolo}: conversation_id=${chatwootData.conversation_id}`);
         return this.protocoloModel
-            .findOneAndUpdate({ protocolo }, { $set: { chatwoot: chatwootData } }, { new: true })
+            .findOneAndUpdate({ protocolo }, { $set: { chatwoot: chatwootData } }, { returnDocument: 'after' })
             .exec();
     }
     async unlinkChatwoot(protocolo) {

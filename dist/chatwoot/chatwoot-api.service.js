@@ -34,6 +34,7 @@ let ChatwootApiService = ChatwootApiService_1 = class ChatwootApiService {
     }
     async sendMessage(conversationId, content, protocolo) {
         const url = `${this.baseUrl}/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages`;
+        console.log(`Sending message to Chatwoot conversationId=${conversationId}, protocolo=${protocolo}, body: ${content}, url=${url},token=${this.apiToken}`);
         try {
             const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(url, {
                 content,
@@ -58,6 +59,25 @@ let ChatwootApiService = ChatwootApiService_1 = class ChatwootApiService {
                     error: errorMessage,
                 });
             }
+            return null;
+        }
+    }
+    async updateConversationCustomAttributes(conversationId, customAttributes) {
+        const url = `${this.baseUrl}/api/v1/accounts/${this.accountId}/conversations/${conversationId}/custom_attributes`;
+        try {
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(url, { custom_attributes: customAttributes }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    api_access_token: this.apiToken,
+                },
+                timeout: 10000,
+            }));
+            this.logger.log(`Custom attributes updated on Chatwoot conversation=${conversationId}`);
+            return response.data;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error(`Failed to update custom attributes on Chatwoot conversation=${conversationId}: ${errorMessage}`);
             return null;
         }
     }

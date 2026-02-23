@@ -15,7 +15,7 @@ export class MessagesRepository {
   constructor(
     @InjectModel(Protocolo.name)
     private readonly protocoloModel: Model<ProtocoloDocument>,
-  ) {}
+  ) { }
 
   /**
    * Adiciona uma mensagem ao array `chat[]` do documento de protocolo.
@@ -35,7 +35,7 @@ export class MessagesRepository {
           $push: { chat: message },
           $set: { updated_at: new Date() },
         },
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
   }
@@ -68,7 +68,6 @@ export class MessagesRepository {
       .findOne({ protocolo })
       .select('chat')
       .exec();
-
     return (doc?.chat ?? []) as IChatMessage[];
   }
 

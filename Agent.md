@@ -129,7 +129,8 @@ src/
 │   │   └── session-mapping.interface.ts  # IProtocolo
 │   ├── dto/
 │   │   ├── create-message.dto.ts         # DTO de criação vindo do front-end
-│   │   └── chatwoot-webhook.dto.ts       # DTO que representa o payload do webhook
+│   │   ├── chatwoot-webhook.dto.ts       # DTO que representa o payload do webhook
+│   │   └── link-chatwoot.dto.ts          # DTO de vínculo protocolo ↔ Chatwoot
 │   └── filters/
 │       └── http-exception.filter.ts      # Filtro global de exceções
 │
@@ -146,11 +147,13 @@ src/
 │
 ├── messages/                             # Módulo core de mensagens
 │   ├── messages.module.ts
+│   ├── messages.controller.ts            # GET /messages/:protocolo/history
 │   ├── messages.service.ts               # Orquestra persistência + dispatch
 │   └── messages.repository.ts            # $push no array chat[] do protocolo
 │
 ├── session/                              # Módulo de vínculo protocolo ↔ Chatwoot
 │   ├── session.module.ts
+│   ├── session.controller.ts             # POST /session/link, DELETE, GET status
 │   ├── session.service.ts                # Busca/vincula protocolo com Chatwoot
 │   └── session.repository.ts            # Acesso ao sub-objeto chatwoot do documento
 │
@@ -256,6 +259,7 @@ AppModule
 | `message_sent` | Confirmação de envio | `{ protocolo, status }` |
 | `message_error` | Erro no envio | `{ error, protocolo }` |
 | `joined_room` | Confirmação de entrada na sala | `{ room }` |
+| `chat_history` | Histórico de mensagens solicitado | `{ protocolo, messages: IChatMessage[] }` |
 
 ### Cliente → Servidor
 
@@ -264,6 +268,25 @@ AppModule
 | `send_message` | Enviar mensagem | `CreateMessageDto` |
 | `join_room` | Entrar na sala de um protocolo | `{ room: protocolo }` |
 | `leave_room` | Sair da sala | `{ room: protocolo }` |
+| `get_history` | Solicitar histórico de chat | `{ room: protocolo }` |
+
+---
+
+## 9.1. Endpoints REST
+
+### Session (vínculo Chatwoot)
+
+| Método | Rota | Descrição | Body / Params |
+|---|---|---|---|
+| `POST` | `/session/link` | Vincula protocolo a conversa Chatwoot | `LinkChatwootDto { protocolo, conversation_id, contact_id, inbox_id? }` |
+| `DELETE` | `/session/:protocolo/link` | Remove vínculo Chatwoot | `protocolo` via param |
+| `GET` | `/session/:protocolo/chatwoot-status` | Status do vínculo | `protocolo` via param |
+
+### Messages (histórico)
+
+| Método | Rota | Descrição | Params |
+|---|---|---|---|
+| `GET` | `/messages/:protocolo/history` | Retorna histórico de chat | `protocolo` via param |
 
 ---
 

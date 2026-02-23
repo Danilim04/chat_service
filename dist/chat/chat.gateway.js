@@ -55,6 +55,25 @@ let ChatGateway = ChatGateway_1 = class ChatGateway {
         client.leave(data.room);
         this.logger.log(`Client ${client.id} left room: ${data.room}`);
     }
+    async handleGetHistory(client, data) {
+        this.logger.log(`History requested by client ${client.id}: protocolo=${data.room}`);
+        try {
+            const TIMEOUT_MS = 15_000;
+            const messages = await Promise.race([
+                this.messagesService.getChatHistory(data.room),
+                new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout: getChatHistory exceeded ${TIMEOUT_MS}ms`)), TIMEOUT_MS)),
+            ]);
+            client.emit('chat_history', { protocolo: data.room, messages });
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error(`Error fetching history: ${errorMessage}`);
+            client.emit('message_error', {
+                error: errorMessage,
+                protocolo: data.room,
+            });
+        }
+    }
     async handleSendMessage(client, data) {
         this.logger.log(`Message received from client ${client.id}: protocolo=${data.protocolo}`);
         try {
@@ -129,6 +148,14 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
     __metadata("design:returntype", void 0)
 ], ChatGateway.prototype, "handleLeaveRoom", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('get_history'),
+    __param(0, (0, websockets_1.ConnectedSocket)()),
+    __param(1, (0, websockets_1.MessageBody)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
+    __metadata("design:returntype", Promise)
+], ChatGateway.prototype, "handleGetHistory", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)('send_message'),
     (0, common_1.UsePipes)(new common_1.ValidationPipe({ transform: true, whitelist: true })),

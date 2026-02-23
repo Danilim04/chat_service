@@ -113,7 +113,7 @@ export declare const ChatMessageSchema: import("mongoose").Schema<ChatMessage, i
 }, ChatMessage>;
 export declare class ChatwootLink {
     conversation_id: number;
-    contact_id: number;
+    contact_id?: number;
     inbox_id?: number;
     linked: boolean;
 }
@@ -145,7 +145,7 @@ export declare const ChatwootLinkSchema: import("mongoose").Schema<ChatwootLink,
     }, "id"> & {
         id: string;
     }> | undefined;
-    contact_id?: import("mongoose").SchemaDefinitionProperty<number, ChatwootLink, import("mongoose").Document<unknown, {}, ChatwootLink, {
+    contact_id?: import("mongoose").SchemaDefinitionProperty<number | undefined, ChatwootLink, import("mongoose").Document<unknown, {}, ChatwootLink, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<ChatwootLink & {
         _id: import("mongoose").Types.ObjectId;

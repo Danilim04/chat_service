@@ -11,5 +11,6 @@ export declare class ChatwootApiService {
     private readonly accountId;
     constructor(httpService: HttpService, configService: ConfigService, eventEmitter: EventEmitter2);
     sendMessage(conversationId: number, content: string, protocolo?: string): Promise<Record<string, unknown> | null>;
+    updateConversationCustomAttributes(conversationId: number, customAttributes: Record<string, unknown>): Promise<Record<string, unknown> | null>;
     getConversation(conversationId: number): Promise<Record<string, unknown> | null>;
 }

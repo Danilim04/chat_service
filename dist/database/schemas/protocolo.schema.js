@@ -75,7 +75,7 @@ __decorate([
     __metadata("design:type", Number)
 ], ChatwootLink.prototype, "conversation_id", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ required: true }),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", Number)
 ], ChatwootLink.prototype, "contact_id", void 0);
 __decorate([
@@ -125,7 +125,7 @@ __decorate([
 ], Protocolo.prototype, "chatwoot", void 0);
 exports.Protocolo = Protocolo = __decorate([
     (0, mongoose_1.Schema)({
-        collection: 'protocolos',
+        collection: 'sac',
         timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
         strict: false,
     })

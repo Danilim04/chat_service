@@ -55,7 +55,7 @@ export class SessionRepository {
       .findOneAndUpdate(
         { protocolo },
         { $set: { chatwoot: chatwootData } },
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
   }

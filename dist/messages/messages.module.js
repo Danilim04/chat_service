@@ -10,6 +10,7 @@ exports.MessagesModule = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const protocolo_schema_js_1 = require("../database/schemas/protocolo.schema.js");
+const messages_controller_js_1 = require("./messages.controller.js");
 const messages_repository_js_1 = require("./messages.repository.js");
 const messages_service_js_1 = require("./messages.service.js");
 let MessagesModule = class MessagesModule {
@@ -22,6 +23,7 @@ exports.MessagesModule = MessagesModule = __decorate([
                 { name: protocolo_schema_js_1.Protocolo.name, schema: protocolo_schema_js_1.ProtocoloSchema },
             ]),
         ],
+        controllers: [messages_controller_js_1.MessagesController],
         providers: [messages_repository_js_1.MessagesRepository, messages_service_js_1.MessagesService],
         exports: [messages_service_js_1.MessagesService],
     })

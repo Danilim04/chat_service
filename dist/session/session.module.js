@@ -10,8 +10,10 @@ exports.SessionModule = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const protocolo_schema_js_1 = require("../database/schemas/protocolo.schema.js");
+const session_controller_js_1 = require("./session.controller.js");
 const session_repository_js_1 = require("./session.repository.js");
 const session_service_js_1 = require("./session.service.js");
+const chatwoot_module_js_1 = require("../chatwoot/chatwoot.module.js");
 let SessionModule = class SessionModule {
 };
 exports.SessionModule = SessionModule;
@@ -21,7 +23,9 @@ exports.SessionModule = SessionModule = __decorate([
             mongoose_1.MongooseModule.forFeature([
                 { name: protocolo_schema_js_1.Protocolo.name, schema: protocolo_schema_js_1.ProtocoloSchema },
             ]),
+            (0, common_1.forwardRef)(() => chatwoot_module_js_1.ChatwootModule),
         ],
+        controllers: [session_controller_js_1.SessionController],
         providers: [session_repository_js_1.SessionRepository, session_service_js_1.SessionService],
         exports: [session_service_js_1.SessionService],
     })

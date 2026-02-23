@@ -30,7 +30,7 @@ let MessagesRepository = MessagesRepository_1 = class MessagesRepository {
             .findOneAndUpdate({ protocolo }, {
             $push: { chat: message },
             $set: { updated_at: new Date() },
-        }, { new: true })
+        }, { returnDocument: 'after' })
             .exec();
     }
     async hasChatwootMessage(protocolo, chatwootMessageId) {

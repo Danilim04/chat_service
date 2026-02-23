@@ -79,6 +79,42 @@ export class ChatGateway
   }
 
   /**
+   * Cliente solicita o histórico de mensagens de um protocolo.
+   */
+  @SubscribeMessage('get_history')
+  async handleGetHistory(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { room: string },
+  ): Promise<void> {
+    this.logger.log(
+      `History requested by client ${client.id}: protocolo=${data.room}`,
+    );
+
+    try {
+      const TIMEOUT_MS = 15_000;
+      const messages = await Promise.race([
+        this.messagesService.getChatHistory(data.room),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Timeout: getChatHistory exceeded ${TIMEOUT_MS}ms`)),
+            TIMEOUT_MS,
+          ),
+        ),
+      ]);
+      client.emit('chat_history', { protocolo: data.room, messages });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(`Error fetching history: ${errorMessage}`);
+      client.emit('message_error', {
+        error: errorMessage,
+        protocolo: data.room,
+      });
+    }
+  }
+
+  /**
    * Cliente envia uma mensagem a partir do front-end interno.
    * Fluxo: persistir no chat[] → se houver vínculo Chatwoot, enviar via API.
    */

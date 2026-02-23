@@ -11,7 +11,7 @@ export interface IChatMessage {
 }
 export interface IChatwootLink {
     conversation_id: number;
-    contact_id: number;
+    contact_id?: number;
     inbox_id?: number;
     linked: boolean;
 }

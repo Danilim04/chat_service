@@ -48,8 +48,8 @@ export class ChatwootLink {
   @Prop({ required: true })
   conversation_id!: number;
 
-  @Prop({ required: true })
-  contact_id!: number;
+  @Prop()
+  contact_id?: number;
 
   @Prop()
   inbox_id?: number;
@@ -67,7 +67,7 @@ export const ChatwootLinkSchema = SchemaFactory.createForClass(ChatwootLink);
 export type ProtocoloDocument = HydratedDocument<Protocolo>;
 
 @Schema({
-  collection: 'protocolos',
+  collection: 'sac',
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   strict: false, // Permite campos extras que já existem no documento
 })
