@@ -18,9 +18,8 @@ export class ChatwootWebhookController {
   @Post('webhook')
   @HttpCode(200)
   async handleWebhook(@Body() payload: ChatwootWebhookDto): Promise<{ status: string }> {
-    this.logger.log(`Webhook received: event=${payload.event}`);
+    this.logger.log(`Webhook received Payload=${JSON.stringify(payload)}`);
 
-    // Detecção de #abertura_chamado em mensagens privadas (antes do translator)
     if (this.isAberturaChamadoMessage(payload)) {
       this.logger.log(
         `#abertura_chamado detected in conversationId=${payload.conversation?.id}`,
