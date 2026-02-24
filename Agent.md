@@ -1,6 +1,6 @@
 # Chatservice — Guia de Arquitetura e Desenvolvimento
 
-> **Última atualização:** 2026-02-20
+> **Última atualização:** 2026-02-24
 > Este documento é a referência canônica para qualquer agente ou desenvolvedor que for manipular o projeto. Leia-o integralmente antes de fazer alterações.
 
 ---
@@ -60,6 +60,7 @@ O Chatservice opera sobre o documento de protocolo existente. As adições feita
       "isInterno": false,
       "autor": "LÍVIA ALVES",
       "mensagem": "a",
+      "isPrivate": false,                   // [NOVO] Flag de mensagem privada
       "chatwoot_message_id": 99999,      // [NOVO] ID da mensagem no Chatwoot
       "source": "internal",              // [NOVO] 'chatwoot' | 'internal'
       "chatwoot_sync_failed": false      // [NOVO] Flag de falha de sincronização
@@ -92,12 +93,19 @@ O Chatservice opera sobre o documento de protocolo existente. As adições feita
 ### Fluxo Chatwoot → Interno
 
 1. Chatwoot envia webhook `POST /chatwoot/webhook` ao Chatservice.
-2. `ChatwootWebhookController` recebe o payload e delega ao `ChatwootWebhookService`.
-3. O serviço filtra eventos relevantes (ex: `message_created`), ignora `outgoing`/`activity`.
-4. `SessionService` busca o protocolo vinculado via `chatwoot.conversation_id`.
-5. `MessagesService` faz `$push` da mensagem no array `chat[]` do documento.
-6. Evento `message.created` é emitido via `EventEmitter`.
-7. `ChatGateway` captura o evento e emite via WebSocket para os clientes na sala do protocolo.
+2. `ChatwootWebhookController` recebe o payload (`ChatwootWebhookDto`).
+3. O **translator** (`translateChatwootPayload`) converte o payload bruto para `IWebhookMessageEvent`.
+   - Filtra eventos não relevantes (retorna `null` para eventos ignorados).
+   - Requer `custom_attributes.protocolo_azapfy` — sem protocolo = mensagem ignorada.
+   - Aceita mensagens `incoming` e `outgoing` (atendentes também são registrados).
+   - Mensagens privadas são aceitas e marcadas com `isPrivate: true`.
+4. O controller passa o `IWebhookMessageEvent` ao `ChatwootWebhookService`.
+5. O service (agnóstico ao Chatwoot) valida o protocolo via `SessionService`.
+6. `MessagesService` faz `$push` da mensagem no array `chat[]` do documento.
+7. Evento `message.created` é emitido via `EventEmitter`.
+8. `ChatGateway` captura o evento e emite via WebSocket para os clientes na sala do protocolo.
+
+> **Camada de tradução:** Se o Chatwoot alterar o formato do payload, apenas o translator precisa ser atualizado. O service e o restante do sistema permanecem intactos.
 
 ### Fluxo Interno → Chatwoot
 
@@ -126,10 +134,11 @@ src/
 ├── common/                               # Shared: DTOs, interfaces, filtros
 │   ├── interfaces/
 │   │   ├── message.interface.ts          # IChatMessage, IChatwootLink
-│   │   └── session-mapping.interface.ts  # IProtocolo
+│   │   ├── session-mapping.interface.ts  # IProtocolo
+│   │   └── webhook-event.interface.ts    # IWebhookMessageEvent (estrutura interna agnóstica)
 │   ├── dto/
 │   │   ├── create-message.dto.ts         # DTO de criação vindo do front-end
-│   │   ├── chatwoot-webhook.dto.ts       # DTO que representa o payload do webhook
+│   │   ├── chatwoot-webhook.dto.ts       # DTO que representa o payload bruto do webhook Chatwoot
 │   │   └── link-chatwoot.dto.ts          # DTO de vínculo protocolo ↔ Chatwoot
 │   └── filters/
 │       └── http-exception.filter.ts      # Filtro global de exceções
@@ -142,8 +151,9 @@ src/
 ├── chatwoot/                             # Módulo de integração com Chatwoot
 │   ├── chatwoot.module.ts
 │   ├── chatwoot-webhook.controller.ts    # POST /chatwoot/webhook (recebe eventos)
+│   ├── chatwoot-payload.translator.ts    # Traduz payload Chatwoot → IWebhookMessageEvent
 │   ├── chatwoot-api.service.ts           # HttpService wrapper p/ API REST do Chatwoot
-│   └── chatwoot-webhook.service.ts       # Processa/filtra payload do webhook
+│   └── chatwoot-webhook.service.ts       # Processa IWebhookMessageEvent (agnóstico ao Chatwoot)
 │
 ├── messages/                             # Módulo core de mensagens
 │   ├── messages.module.ts
@@ -209,8 +219,18 @@ AppModule
 ### 7.1 Filtragem de Webhooks
 
 - Apenas eventos do tipo `message_created` do Chatwoot devem gerar persistência e emissão.
-- Mensagens com `message_type: "outgoing"` originadas pelo próprio Chatservice devem ser **ignoradas** para evitar loop infinito.
-- O campo `content` vazio deve ser descartado (mensagens de sistema/atividade).
+- Mensagens com `message_type: "activity"` são ignoradas (eventos de sistema).
+- Mensagens `incoming` (contato) e `outgoing` (atendente) são **ambas registradas**.
+- Mensagens **privadas** (`private: true`) são salvas com flag `isPrivate: true`.
+- O campo `content` vazio deve ser descartado.
+- Mensagens **sem `protocolo_azapfy`** no `custom_attributes` da conversa são ignoradas (sem protocolo = sem sessão aberta).
+
+### 7.1.1 Camada de Tradução (Translator)
+
+- O payload bruto do Chatwoot (`ChatwootWebhookDto`) é convertido para `IWebhookMessageEvent` pelo translator (`chatwoot-payload.translator.ts`) **antes** de chegar ao service.
+- O service (`ChatwootWebhookService`) trabalha **exclusivamente** com `IWebhookMessageEvent`, sem nenhuma referência ao formato do Chatwoot.
+- Se o Chatwoot alterar o formato do payload, apenas o translator precisa ser atualizado — o restante do sistema permanece intacto.
+- Toda filtragem e mapeamento de campos do Chatwoot acontece no translator, nunca no service.
 
 ### 7.2 Vínculo Protocolo ↔ Chatwoot
 
@@ -223,6 +243,7 @@ AppModule
 
 - Toda mensagem (inbound ou outbound) é adicionada via `$push` ao array `chat[]` do documento de protocolo.
 - Mensagens mantêm a estrutura existente (`reme`, `dest`, `dt_env`, `isInterno`, `autor`, `mensagem`).
+- Campo `isPrivate` indica nota interna entre atendentes (visível apenas no painel, não para o contato).
 - Campos Chatwoot (`chatwoot_message_id`, `source`, `chatwoot_sync_failed`) são **opcionais** — presentes apenas em mensagens que passam pelo Chatservice.
 
 ### 7.4 Prevenção de Duplicatas

@@ -201,18 +201,43 @@ Retorna o array completo de mensagens do chat de um protocolo.
 Endpoint para receber webhooks do Chatwoot. Configurado no painel do Chatwoot para enviar eventos automaticamente.
 
 | Item | Detalhe |
-|---|---|
+| --- | --- |
 | **Método** | `POST` |
 | **URL** | `/chatwoot/webhook` |
 | **HTTP Code** | Sempre `200` (mesmo em erro, para evitar retentativas do Chatwoot) |
 
 > **Nota:** Este endpoint é consumido exclusivamente pelo Chatwoot, não pelo front-end. Não é necessário chamá-lo manualmente.
 
-**Response:**
+**Regras de processamento:**
+
+- Apenas eventos `message_created` são processados.
+- Mensagens do tipo `activity` são ignoradas.
+- Mensagens `incoming` (contato) e `outgoing` (atendente) são **ambas registradas**.
+- Mensagens **privadas** (`private: true`) são salvas no banco com flag `isPrivate: true`.
+- A conversa **deve** possuir o atributo `custom_attributes.protocolo_azapfy` — caso contrário a mensagem é ignorada (sem protocolo = sem sessão aberta).
+- Mensagens com conteúdo vazio são ignoradas.
+
+**Camada de tradução:** O payload bruto do Chatwoot é convertido para a estrutura interna `IWebhookMessageEvent` pelo translator (`chatwoot-payload.translator.ts`) **antes** de chegar ao service. Isso garante que alterações no formato do Chatwoot afetem apenas o translator.
+
+**Responses possíveis:**
 
 ```json
 { "status": "ok" }
 ```
+
+```json
+{ "status": "ignored" }
+```
+
+```json
+{ "status": "error_logged" }
+```
+
+| Status | Significado |
+| --- | --- |
+| `ok` | Mensagem processada e persistida com sucesso |
+| `ignored` | Evento filtrado (não relevante, sem protocolo, activity, conteúdo vazio) |
+| `error_logged` | Erro durante o processamento (logado internamente) |
 
 ---
 
@@ -439,9 +464,26 @@ Objeto de mensagem presente no array `chat[]` do protocolo.
 | `isInterno` | `boolean` | ✅ | Se é mensagem interna |
 | `autor` | `string` | ✅ | Nome de exibição do autor |
 | `mensagem` | `string` | ✅ | Conteúdo textual |
+| `isPrivate` | `boolean` | ❌ | `true` se é mensagem privada (nota interna entre atendentes). Default: `false` |
 | `chatwoot_message_id` | `integer` | ❌ | ID da mensagem no Chatwoot |
 | `source` | `string` | ❌ | `"chatwoot"` ou `"internal"` |
 | `chatwoot_sync_failed` | `boolean` | ❌ | `true` se falhou ao sincronizar |
+
+### IWebhookMessageEvent
+
+Estrutura interna agnóstica ao provedor, gerada pelo translator a partir do payload externo. O service trabalha exclusivamente com esta interface.
+
+| Campo | Tipo | Obrigatório | Descrição |
+| --- | --- | --- | --- |
+| `event` | `string` | ✅ | Tipo do evento (ex: `message_created`) |
+| `externalMessageId` | `integer` | ❌ | ID da mensagem no provedor externo |
+| `content` | `string` | ✅ | Conteúdo textual da mensagem |
+| `messageType` | `string` | ✅ | `"incoming"` ou `"outgoing"` |
+| `isPrivate` | `boolean` | ✅ | Se é mensagem privada |
+| `protocolo` | `string` | ✅ | Protocolo vinculado à conversa |
+| `conversationId` | `integer` | ✅ | ID da conversa no provedor externo |
+| `sender.identifier` | `string` | ✅ | Identificador único do remetente |
+| `sender.name` | `string` | ✅ | Nome de exibição do remetente |
 
 ### IChatwootLink
 
