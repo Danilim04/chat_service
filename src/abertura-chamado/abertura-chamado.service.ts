@@ -144,7 +144,7 @@ export class AberturaChamadoService {
         email: parsed.email,
         telefone,
       },
-      grupo_emp: parsed.grupoEmpresa.toUpperCase(),
+      grupo_emp: "AZAPERS",
       dt_abertura: dtAbertura,
       incidente: {
         resumo: parsed.resumoChamado,
