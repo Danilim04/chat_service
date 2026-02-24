@@ -1,3 +1,8 @@
+    - **Interfaces:** Prefixo `I` (ex: `IChatMessage`, `IProtocolo`, `IAberturaChamadoParsed`)
+  - Mensagens **privadas** (`private: true`) são salvas com flag `isPrivate: true`.
+  - **[NOVO]** Mensagens privadas contendo `#abertura_chamado` são processadas para abertura de chamado:
+    - O conteúdo é parseado, os dados extraídos são enviados à API externa.
+    - Após abertura, o protocolo é vinculado à conversa e uma mensagem de confirmação é enviada.
 # Chatservice — Guia de Arquitetura e Desenvolvimento
 
 > **Última atualização:** 2026-02-24
@@ -99,6 +104,11 @@ O Chatservice opera sobre o documento de protocolo existente. As adições feita
    - Requer `custom_attributes.protocolo_azapfy` — sem protocolo = mensagem ignorada.
    - Aceita mensagens `incoming` e `outgoing` (atendentes também são registrados).
    - Mensagens privadas são aceitas e marcadas com `isPrivate: true`.
+   - Mensagens privadas são aceitas e marcadas com `isPrivate: true`.
+   - **[NOVO]** Mensagens privadas contendo `#abertura_chamado` são processadas ANTES do translator:
+     - O controller detecta a tag e emite o evento `abertura_chamado.requested`.
+     - O módulo `abertura-chamado` faz o parse, chama a API externa, vincula o protocolo e envia confirmação na conversa.
+     - Permite abertura de chamado mesmo sem protocolo vinculado previamente.
 4. O controller passa o `IWebhookMessageEvent` ao `ChatwootWebhookService`.
 5. O service (agnóstico ao Chatwoot) valida o protocolo via `SessionService`.
 6. `MessagesService` faz `$push` da mensagem no array `chat[]` do documento.
@@ -171,6 +181,11 @@ src/
     ├── chat.module.ts
     ├── chat.gateway.ts                   # @WebSocketGateway — bidirecional
     └── chat.service.ts                   # Lógica de emissão/recepção WS
+
+  ├── abertura-chamado/                    # [NOVO] Módulo de abertura de chamado
+  │   ├── abertura-chamado.module.ts       # Módulo NestJS
+  │   ├── abertura-chamado.service.ts      # Service: integra API externa, vincula protocolo
+  │   ├── abertura-chamado-message.parser.ts # Parser: extrai dados da mensagem
 ```
 
 ---
@@ -186,6 +201,7 @@ src/
 | **MessagesModule** | Feature | `$push` no array `chat[]` e orquestração de mensagens. |
 | **SessionModule** | Feature | Vínculo do `protocolo` com `chatwoot.conversation_id`. |
 | **ChatModule** | Feature | WebSocket Gateway + emissão em tempo real via Redis adapter. |
+| **AberturaChamadoModule** | Feature | Processa mensagens privadas com `#abertura_chamado`, integra API externa, vincula protocolo e envia confirmação |
 
 ---
 
@@ -365,6 +381,28 @@ CHATWOOT_BASE_URL=https://app.chatwoot.com
 CHATWOOT_API_TOKEN=seu_token_aqui
 CHATWOOT_ACCOUNT_ID=1
 CHATWOOT_INBOX_ID=1
+```
+```
+# App
+PORT=3000
+NODE_ENV=development
+
+# MongoDB
+MONGODB_URI=mongodb://localhost:27017/chatservice
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Chatwoot
+CHATWOOT_BASE_URL=https://app.chatwoot.com
+CHATWOOT_API_TOKEN=seu_token_aqui
+CHATWOOT_ACCOUNT_ID=1
+CHATWOOT_INBOX_ID=1
+
+# [NOVO] Abertura de chamado
+ABERTURA_CHAMADO_API_URL=https://seu-backend.com/api/abertura
+ABERTURA_CHAMADO_API_TOKEN=seu_token_aqui
 ```
 
 ---

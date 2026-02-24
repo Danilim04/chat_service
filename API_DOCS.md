@@ -216,6 +216,13 @@ Endpoint para receber webhooks do Chatwoot. Configurado no painel do Chatwoot pa
 - Mensagens **privadas** (`private: true`) são salvas no banco com flag `isPrivate: true`.
 - A conversa **deve** possuir o atributo `custom_attributes.protocolo_azapfy` — caso contrário a mensagem é ignorada (sem protocolo = sem sessão aberta).
 - Mensagens com conteúdo vazio são ignoradas.
+Mensagens com conteúdo vazio são ignoradas.
+
+**[NOVO]** Mensagens privadas contendo `#abertura_chamado`:
+  - São processadas ANTES do translator.
+  - O controller detecta a tag e emite o evento `abertura_chamado.requested`.
+  - O módulo `abertura-chamado` faz o parse, chama a API externa, vincula o protocolo e envia confirmação na conversa.
+  - Permite abertura de chamado mesmo sem protocolo vinculado previamente.
 
 **Camada de tradução:** O payload bruto do Chatwoot é convertido para a estrutura interna `IWebhookMessageEvent` pelo translator (`chatwoot-payload.translator.ts`) **antes** de chegar ao service. Isso garante que alterações no formato do Chatwoot afetem apenas o translator.
 
@@ -484,6 +491,45 @@ Estrutura interna agnóstica ao provedor, gerada pelo translator a partir do pay
 | `conversationId` | `integer` | ✅ | ID da conversa no provedor externo |
 | `sender.identifier` | `string` | ✅ | Identificador único do remetente |
 | `sender.name` | `string` | ✅ | Nome de exibição do remetente |
+
+### IAberturaChamadoParsed
+
+Estrutura extraída da mensagem privada com `#abertura_chamado`.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `nome` | `string` | ✅ | Nome do relator |
+| `grupoEmpresa` | `string` | ✅ | Grupo empresarial |
+| `email` | `string` | ✅ | Email do relator |
+| `whatsApp` | `string` | ✅ | Telefone (WhatsApp) |
+| `resumoChamado` | `string` | ✅ | Resumo do chamado |
+| `descricaoChamado` | `string` | ✅ | Descrição detalhada |
+| `categoria` | `string` | ✅ | Categoria |
+
+### IAberturaChamadoRequest
+
+Body enviado à API externa de abertura de chamado.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `nome_relator` | `string` | ✅ | Nome do relator |
+| `cod_relator` | `string` | ✅ | Código/email do relator |
+| `contato_relator.email` | `string` | ✅ | Email |
+| `contato_relator.telefone` | `string` | ✅ | Telefone |
+| `grupo_emp` | `string` | ✅ | Grupo empresarial |
+| `dt_abertura` | `string` | ✅ | Data/hora de abertura |
+| `incidente.resumo` | `string` | ✅ | Resumo |
+| `incidente.descricao` | `string` | ✅ | Descrição |
+| `incidente.categoria` | `string` | ✅ | Categoria |
+| ... | ... | ... | Demais campos conforme API |
+
+### IAberturaChamadoResponse
+
+Resposta esperada da API de abertura de chamado.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `protocolo` | `string` | ✅ | Protocolo gerado |
 
 ### IChatwootLink
 
