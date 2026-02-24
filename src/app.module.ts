@@ -7,6 +7,7 @@ import { ChatwootModule } from './chatwoot/chatwoot.module.js';
 import { MessagesModule } from './messages/messages.module.js';
 import { SessionModule } from './session/session.module.js';
 import { ChatModule } from './chat/chat.module.js';
+import { AberturaChamadoModule } from './abertura-chamado/abertura-chamado.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ChatModule } from './chat/chat.module.js';
     MessagesModule,
     ChatwootModule,
     ChatModule,
+    AberturaChamadoModule,
   ],
 })
 export class AppModule {}
