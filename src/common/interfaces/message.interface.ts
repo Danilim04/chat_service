@@ -21,6 +21,9 @@ export interface IChatMessage {
   /** Conteúdo textual da mensagem */
   mensagem: string;
 
+  /** Se a mensagem é privada (nota interna visível apenas para atendentes) */
+  isPrivate?: boolean;
+
   // --- Campos Chatwoot (opcionais) ---
 
   /** ID da mensagem no Chatwoot (para prevenção de duplicatas) */

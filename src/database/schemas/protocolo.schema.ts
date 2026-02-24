@@ -25,6 +25,9 @@ export class ChatMessage {
   @Prop({ required: true })
   mensagem!: string;
 
+  @Prop({ default: false })
+  isPrivate?: boolean;
+
   // --- Campos Chatwoot (opcionais) ---
 
   @Prop()

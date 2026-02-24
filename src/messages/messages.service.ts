@@ -25,6 +25,7 @@ export class MessagesService {
     senderName: string;
     senderIdentifier: string;
     destIdentifier: string;
+    isPrivate?: boolean;
   }): Promise<IChatMessage | null> {
     // Prevenção de duplicatas
     if (data.chatwootMessageId) {
@@ -49,6 +50,7 @@ export class MessagesService {
       mensagem: data.content,
       chatwoot_message_id: data.chatwootMessageId,
       source: 'chatwoot',
+      isPrivate: data.isPrivate ?? false,
     };
 
     const updatedDoc = await this.messagesRepository.pushMessage(
