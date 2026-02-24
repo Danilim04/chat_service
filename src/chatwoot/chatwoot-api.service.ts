@@ -29,6 +29,7 @@ export class ChatwootApiService {
     conversationId: number,
     content: string,
     protocolo?: string,
+    msgPrivate?: boolean,
   ): Promise<Record<string, unknown> | null> {
     const url = `${this.baseUrl}/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages`;
 
@@ -43,7 +44,7 @@ export class ChatwootApiService {
           {
             content,
             message_type: 'outgoing',
-            private: false,
+            private: msgPrivate ?? false,
           },
           {
             headers: {
