@@ -172,6 +172,7 @@ export class AberturaChamadoService {
   ): Promise<string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'referer': 'https://atendimento.azapfy.com.br/',
     };
 
     if (this.apiToken) {
