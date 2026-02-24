@@ -24,8 +24,7 @@ export class ChatwootWebhookController {
         'Error processing webhook',
         error instanceof Error ? error.stack : String(error),
       );
-      // Retornamos 200 mesmo em erro para evitar retentativas do Chatwoot
-      // O erro é logado para investigação
+      
       return { status: 'error_logged' };
     }
   }
