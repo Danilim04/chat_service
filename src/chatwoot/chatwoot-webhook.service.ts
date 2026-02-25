@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { MessagesService } from '../messages/messages.service.js';
+import { AttachmentService } from '../messages/attachment.service.js';
 import { SessionService } from '../session/session.service.js';
 import { IWebhookMessageEvent } from '../common/interfaces/webhook-event.interface.js';
 
@@ -11,6 +12,7 @@ export class ChatwootWebhookService {
   constructor(
     private readonly messagesService: MessagesService,
     private readonly sessionService: SessionService,
+    private readonly attachmentService: AttachmentService,
   ) { }
 
   /**
@@ -32,6 +34,18 @@ export class ChatwootWebhookService {
 
     const destIdentifier = protocoloDoc?.cod_relator ?? protocolo;
 
+    // Processa anexos (download + upload S3) se existirem
+    let attachmentFileNames: string[] = [];
+    if (event.attachments && event.attachments.length > 0) {
+      this.logger.log(
+        `Processing ${event.attachments.length} attachment(s) for protocolo=${protocolo}`,
+      );
+      attachmentFileNames = await this.attachmentService.processAttachments(
+        protocolo,
+        event.attachments,
+      );
+    }
+
     await this.messagesService.handleInboundMessage({
       protocolo,
       content: event.content,
@@ -40,10 +54,12 @@ export class ChatwootWebhookService {
       senderIdentifier: event.sender.identifier,
       destIdentifier,
       isPrivate: event.isPrivate,
+      attachmentFileNames:
+        attachmentFileNames.length > 0 ? attachmentFileNames : undefined,
     });
 
     this.logger.log(
-      `Webhook processed: protocolo=${protocolo}, conversation_id=${conversationId}, type=${event.messageType}, private=${event.isPrivate}`,
+      `Webhook processed: protocolo=${protocolo}, conversation_id=${conversationId}, type=${event.messageType}, private=${event.isPrivate}, attachments=${attachmentFileNames.length}`,
     );
   }
 }

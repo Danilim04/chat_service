@@ -8,6 +8,7 @@ import { MessagesModule } from './messages/messages.module.js';
 import { SessionModule } from './session/session.module.js';
 import { ChatModule } from './chat/chat.module.js';
 import { AberturaChamadoModule } from './abertura-chamado/abertura-chamado.module.js';
+import { StorageModule } from './storage/storage.module.js';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AberturaChamadoModule } from './abertura-chamado/abertura-chamado.modul
     AppConfigModule,
     DatabaseModule,
     EventEmitterModule.forRoot(),
+    StorageModule,
 
     // Feature modules
     SessionModule,
@@ -24,4 +26,4 @@ import { AberturaChamadoModule } from './abertura-chamado/abertura-chamado.modul
     AberturaChamadoModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }

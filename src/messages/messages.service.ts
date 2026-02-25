@@ -11,7 +11,7 @@ export class MessagesService {
   constructor(
     private readonly messagesRepository: MessagesRepository,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   /**
    * Persiste uma mensagem INBOUND (Chatwoot → interno).
@@ -26,8 +26,8 @@ export class MessagesService {
     senderIdentifier: string;
     destIdentifier: string;
     isPrivate?: boolean;
+    attachmentFileNames?: string[];
   }): Promise<IChatMessage | null> {
-    // Prevenção de duplicatas
     if (data.chatwootMessageId) {
       const exists = await this.messagesRepository.hasChatwootMessage(
         data.protocolo,
@@ -45,12 +45,14 @@ export class MessagesService {
       reme: data.senderIdentifier,
       dest: data.destIdentifier,
       dt_env: new Date(),
-      isInterno: false,
+      isPrivate: false,
       autor: data.senderName,
       mensagem: data.content,
       chatwoot_message_id: data.chatwootMessageId,
       source: 'chatwoot',
-      isPrivate: data.isPrivate ?? false,
+      ...(data.attachmentFileNames && data.attachmentFileNames.length > 0
+        ? { anexo: data.attachmentFileNames }
+        : {}),
     };
 
     const updatedDoc = await this.messagesRepository.pushMessage(
@@ -63,6 +65,17 @@ export class MessagesService {
         `Failed to push inbound message: protocolo=${data.protocolo} not found`,
       );
       return null;
+    }
+
+    // Persiste cada anexo no array `anexos` do documento raiz
+    if (data.attachmentFileNames && data.attachmentFileNames.length > 0) {
+      await this.messagesRepository.pushAnexos(
+        data.protocolo,
+        data.attachmentFileNames,
+      );
+      this.logger.log(
+        `Anexos persisted: protocolo=${data.protocolo}, files=${data.attachmentFileNames.join(', ')}`,
+      );
     }
 
     this.logger.log(
@@ -94,7 +107,7 @@ export class MessagesService {
       reme: data.senderIdentifier,
       dest: data.destIdentifier,
       dt_env: new Date(),
-      isInterno: data.isInterno ?? false,
+      isPrivate: data.isInterno ?? false,
       autor: data.senderName,
       mensagem: data.content,
       source: 'internal',

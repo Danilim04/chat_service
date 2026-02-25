@@ -109,4 +109,31 @@ export class MessagesRepository {
       .limit(limit)
       .exec();
   }
+
+  /**
+   * Adiciona anexos ao array `anexos` do documento de protocolo.
+   * Cada anexo é salvo como { anexo: "nome_arquivo.ext", isInterno: false }.
+   */
+  async pushAnexos(
+    protocolo: string,
+    fileNames: string[],
+  ): Promise<void> {
+    const anexoItems = fileNames.map((fileName) => ({
+      anexo: fileName,
+      isInterno: false,
+    }));
+
+    await this.protocoloModel
+      .updateOne(
+        { protocolo },
+        {
+          $push: { anexos: { $each: anexoItems } },
+        },
+      )
+      .exec();
+
+    this.logger.log(
+      `Pushed ${fileNames.length} anexo(s) to protocolo=${protocolo}`,
+    );
+  }
 }

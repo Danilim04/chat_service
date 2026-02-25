@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 
 import { ChatwootWebhookDto } from '../common/dto/chatwoot-webhook.dto.js';
-import { IWebhookMessageEvent } from '../common/interfaces/webhook-event.interface.js';
+import { IWebhookMessageEvent, IWebhookAttachment } from '../common/interfaces/webhook-event.interface.js';
 
 const logger = new Logger('ChatwootPayloadTranslator');
 
@@ -28,8 +28,17 @@ export function translateChatwootPayload(
         return null;
     }
 
-    if (!payload.content || payload.content.trim() === '') {
-        logger.debug('Ignoring empty content message');
+    const hasContent = !!payload.content && payload.content.trim() !== '';
+
+    const matchingMessage = payload.conversation?.messages?.find(
+        (msg) => (msg as any).id === payload.id,
+    ) ?? payload.conversation?.messages?.[0];
+
+    const rawAttachments = matchingMessage?.attachments ?? [];
+    const hasAttachments = rawAttachments.length > 0;
+
+    if (!hasContent && !hasAttachments) {
+        logger.debug('Ignoring message with no content and no attachments');
         return null;
     }
 
@@ -51,10 +60,22 @@ export function translateChatwootPayload(
     const senderIdentifier = resolveSenderIdentifier(payload);
     const senderName = resolveSenderName(payload);
 
+    const attachments: IWebhookAttachment[] = rawAttachments
+        .filter((att) => !!att.data_url)
+        .map((att) => {
+            const url = att.data_url!;
+            const fileName = extractFileNameFromUrl(url);
+            return {
+                url,
+                fileName,
+                contentType: att.content_type ?? 'application/octet-stream',
+            };
+        });
+
     return {
         event: payload.event,
         externalMessageId: payload.id,
-        content: payload.content,
+        content: payload.content ?? '',
         messageType: (payload.message_type as 'incoming' | 'outgoing') ?? 'incoming',
         isPrivate: payload.private ?? false,
         protocolo,
@@ -63,6 +84,7 @@ export function translateChatwootPayload(
             identifier: senderIdentifier,
             name: senderName,
         },
+        ...(attachments.length > 0 ? { attachments } : {}),
     };
 }
 
@@ -98,4 +120,18 @@ function resolveSenderName(payload: ChatwootWebhookDto): string {
         payload.sender?.name ??
         'Desconhecido'
     );
+}
+
+function extractFileNameFromUrl(url: string): string {
+    try {
+        const pathname = new URL(url).pathname;
+        const segments = pathname.split('/');
+        const lastSegment = segments[segments.length - 1];
+        if (lastSegment && lastSegment.includes('.')) {
+            return decodeURIComponent(lastSegment);
+        }
+    } catch {
+        // URL inválida — fallback abaixo
+    }
+    return `attachment_${Date.now()}`;
 }

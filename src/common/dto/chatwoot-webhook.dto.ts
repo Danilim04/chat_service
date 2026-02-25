@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNotEmpty,
@@ -143,7 +144,46 @@ class ChatwootConversation {
   custom_attributes?: ChatwootCustomAttributes;
 
   @IsOptional()
-  messages?: Record<string, unknown>[];
+  @ValidateNested({ each: true })
+  @Type(() => ChatwootMessage)
+  messages?: ChatwootMessage[];
+}
+
+class ChatwootMessage {
+  @IsOptional()
+  @IsNumber()
+  id?: number;
+
+  @IsOptional()
+  @IsString()
+  content?: string;
+
+  @IsOptional()
+  @IsString()
+  content_type?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  private?: boolean;
+
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ChatwootAttachment)
+  attachments?: ChatwootAttachment[];
+}
+
+class ChatwootAttachment {
+  @IsOptional()
+  @IsString()
+  data_url?: string;
+
+  @IsOptional()
+  @IsString()
+  file_type?: string;
+
+  @IsOptional()
+  @IsString()
+  content_type?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -199,3 +239,4 @@ export class ChatwootWebhookDto {
   @Type(() => ChatwootInbox)
   inbox?: ChatwootInbox;
 }
+

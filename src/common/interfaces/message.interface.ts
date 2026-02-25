@@ -12,9 +12,6 @@ export interface IChatMessage {
   /** Data de envio */
   dt_env: Date;
 
-  /** Se a mensagem é interna (visível apenas para atendentes) */
-  isInterno: boolean;
-
   /** Nome do autor da mensagem */
   autor: string;
 
@@ -34,6 +31,9 @@ export interface IChatMessage {
 
   /** Indica se a sincronização com o Chatwoot falhou */
   chatwoot_sync_failed?: boolean;
+
+  /** Nomes dos arquivos anexados (ex: ['foto.png', 'doc.pdf']) */
+  anexo?: string[];
 }
 
 /**

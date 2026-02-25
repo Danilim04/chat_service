@@ -35,4 +35,21 @@ export interface IWebhookMessageEvent {
     /** Nome de exibição */
     name: string;
   };
+
+  /** Anexos da mensagem (arquivos, imagens, etc.) */
+  attachments?: IWebhookAttachment[];
+}
+
+/**
+ * Representa um anexo recebido via webhook, já normalizado.
+ */
+export interface IWebhookAttachment {
+  /** URL de download do arquivo */
+  url: string;
+
+  /** Nome do arquivo (ex: 'foto.png') */
+  fileName: string;
+
+  /** MIME type do arquivo (ex: 'image/png') */
+  contentType: string;
 }

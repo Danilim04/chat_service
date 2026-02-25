@@ -1,3 +1,26 @@
+# App
+PORT=3000
+NODE_ENV=development
+
+# MongoDB
+MONGODB_URI=mongodb://daniel-devops:100204Dani@db-beta.azapfy.com.br:1433/
+MONGODB_DB_NAME=azapfy3
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+
+# Chatwoot
+CHATWOOT_BASE_URL=https://chatwoot.azapfy.com.br
+CHATWOOT_API_TOKEN=MFhEtkoGAsLm8xVa5uqjPrwn
+CHATWOOT_ACCOUNT_ID=1
+CHATWOOT_INBOX_ID=3
+
+# Abetura de Chamado
+ABERTURA_CHAMADO_API_URL=https://api3.azapfy.com.br/api/sac/incidente/criar
+ABERTURA_CHAMADO_API_TOKEN=seu_token_aqui
+
     - **Interfaces:** Prefixo `I` (ex: `IChatMessage`, `IProtocolo`, `IAberturaChamadoParsed`)
   - Mensagens **privadas** (`private: true`) são salvas com flag `isPrivate: true`.
   - **[NOVO]** Mensagens privadas contendo `#abertura_chamado` são processadas para abertura de chamado:
