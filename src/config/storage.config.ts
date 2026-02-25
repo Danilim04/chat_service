@@ -5,4 +5,5 @@ export default registerAs('storage', () => ({
     secretKey: process.env.AWS_SECRET_KEY ?? '',
     region: process.env.AWS_REGION ?? 'us-east-1',
     bucket: process.env.AWS_BUCKET ?? '',
+    uploadTimeoutMs: parseInt(process.env.AWS_UPLOAD_TIMEOUT_MS ?? '30000', 10),
 }));

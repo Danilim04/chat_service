@@ -100,6 +100,7 @@ export class MessagesService {
     destIdentifier: string;
     senderName: string;
     isPrivate?: boolean;
+    attachmentFileNames?: string[];
   }): Promise<IChatMessage | null> {
     const chatMessage: IChatMessage = {
       reme: data.senderIdentifier,
@@ -109,6 +110,9 @@ export class MessagesService {
       autor: data.senderName,
       mensagem: data.content,
       source: 'internal',
+      ...(data.attachmentFileNames
+        ? { anexo: data.attachmentFileNames }
+        : {}),
     };
 
     const updatedDoc = await this.messagesRepository.pushMessage(
@@ -123,8 +127,18 @@ export class MessagesService {
       return null;
     }
 
+    if (data.attachmentFileNames && data.attachmentFileNames.length > 0) {
+      await this.messagesRepository.pushAnexos(
+        data.protocolo,
+        data.attachmentFileNames,
+      );
+      this.logger.log(
+        `Outbound anexos persisted: protocolo=${data.protocolo}, files=${data.attachmentFileNames.join(', ')}`,
+      );
+    }
+
     this.logger.log(
-      `Outbound message persisted: protocolo=${data.protocolo}, autor=${data.senderName}`,
+      `Outbound message persisted: protocolo=${data.protocolo}, autor=${data.senderName}, attachments=${data.attachmentFileNames?.length ?? 0}`,
     );
 
     return chatMessage;

@@ -8,7 +8,7 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Logger, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Inject, Logger, UsePipes, ValidationPipe } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 
@@ -18,12 +18,17 @@ import { SessionService } from '../session/session.service.js';
 import { ChatwootApiService } from '../chatwoot/chatwoot-api.service.js';
 import { CreateMessageDto } from '../common/dto/create-message.dto.js';
 import { IChatMessage } from '../common/interfaces/message.interface.js';
+import {
+  STORAGE_SERVICE,
+  type IStorageService,
+} from '../common/interfaces/storage.interface.js';
 
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: '/chat',
   pingInterval: 25000,
   pingTimeout: 10000,
+  maxHttpBufferSize: 10 * 1024 * 1024, // 10 MB para suportar envio de arquivos
 })
 export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -37,6 +42,8 @@ export class ChatGateway
     private readonly messagesService: MessagesService,
     private readonly sessionService: SessionService,
     private readonly chatwootApiService: ChatwootApiService,
+    @Inject(STORAGE_SERVICE)
+    private readonly storageService: IStorageService,
   ) { }
 
   afterInit(server: Server): void {
@@ -115,7 +122,8 @@ export class ChatGateway
 
   /**
    * Cliente envia uma mensagem a partir do front-end interno.
-   * Fluxo: persistir no chat[] → se houver vínculo Chatwoot, enviar via API.
+   * Fluxo: persistir no chat[] → upload de anexos ao S3 → enviar ao Chatwoot.
+   * Se houver anexos, usa multipart/form-data via sendMessageWithAttachments.
    */
   @SubscribeMessage('send_message')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
@@ -124,7 +132,7 @@ export class ChatGateway
     @MessageBody() data: CreateMessageDto,
   ): Promise<void> {
     this.logger.log(
-      `Message received from client ${client.id}: protocolo=${data.protocolo}`,
+      `Message received from client ${client.id}: protocolo=${data.protocolo}, attachments=${data.anexos?.length ?? 0}`,
     );
 
     try {
@@ -133,14 +141,48 @@ export class ChatGateway
         data.protocolo,
       );
 
-      // 2. Persistir mensagem no array chat[] como OUTBOUND
+      // 2. Processar anexos (base64 → Buffer → S3 upload)
+      const fileBuffers: { buffer: Buffer; fileName: string; contentType: string }[] = [];
+      const attachmentFileNames: string[] = [];
+
+      if (data.anexos && data.anexos.length > 0) {
+        for (const anexo of data.anexos) {
+          try {
+            const buffer = Buffer.from(anexo.base64, 'base64');
+            const s3Key = `sac/AZAPERS/${data.protocolo}/${anexo.fileName}`;
+
+            await this.storageService.upload(s3Key, buffer, anexo.contentType);
+
+            fileBuffers.push({
+              buffer,
+              fileName: anexo.fileName,
+              contentType: anexo.contentType,
+            });
+            attachmentFileNames.push(anexo.fileName);
+
+            this.logger.log(
+              `Attachment uploaded to S3: ${s3Key}`,
+            );
+          } catch (error) {
+            this.logger.error(
+              `Failed to upload attachment ${anexo.fileName} to S3`,
+              error instanceof Error ? error.stack : String(error),
+            );
+            // Continua com os próximos anexos — não bloqueia por um único
+          }
+        }
+      }
+
+      // 3. Persistir mensagem no array chat[] como OUTBOUND
       const chatMessage = await this.messagesService.handleOutboundMessage({
         protocolo: data.protocolo,
-        content: data.mensagem,
+        content: data.mensagem ?? '',
         senderIdentifier: data.reme,
         destIdentifier: data.dest,
         senderName: data.autor,
         isPrivate: data.isInterno,
+        attachmentFileNames:
+          attachmentFileNames.length > 0 ? attachmentFileNames : undefined,
       });
 
       if (!chatMessage) {
@@ -153,13 +195,26 @@ export class ChatGateway
 
       let syncStatus = 'no_chatwoot_link';
 
-      // 3. Se houver vínculo com Chatwoot, enviar via API
+      // 4. Se houver vínculo com Chatwoot, enviar via API
       if (protocoloDoc.chatwoot?.linked && protocoloDoc.chatwoot.conversation_id) {
-        const result = await this.chatwootApiService.sendMessage(
-          protocoloDoc.chatwoot.conversation_id,
-          data.mensagem,
-          data.protocolo,
-        );
+        let result: Record<string, unknown> | null = null;
+
+        if (fileBuffers.length > 0) {
+          // Envia com multipart/form-data (anexos)
+          result = await this.chatwootApiService.sendMessageWithAttachments(
+            protocoloDoc.chatwoot.conversation_id,
+            data.mensagem ?? '',
+            fileBuffers,
+            data.protocolo,
+          );
+        } else {
+          // Envia apenas texto
+          result = await this.chatwootApiService.sendMessage(
+            protocoloDoc.chatwoot.conversation_id,
+            data.mensagem,
+            data.protocolo,
+          );
+        }
 
         if (result) {
           await this.messagesService.markSyncSuccess(data.protocolo);
@@ -169,13 +224,14 @@ export class ChatGateway
         }
       }
 
-      // 4. Confirmar envio ao cliente que enviou
+      // 5. Confirmar envio ao cliente que enviou
       client.emit('message_sent', {
         protocolo: data.protocolo,
         status: syncStatus,
+        attachments: attachmentFileNames,
       });
 
-      // 5. Broadcast para a sala (outros clientes veem a mensagem)
+      // 6. Broadcast para a sala (outros clientes veem a mensagem)
       this.chatService.emitToRoom(
         data.protocolo,
         'new_message',

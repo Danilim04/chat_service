@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import FormData from 'form-data';
 
 @Injectable()
 export class ChatwootApiService {
@@ -33,8 +34,8 @@ export class ChatwootApiService {
   ): Promise<Record<string, unknown> | null> {
     const url = `${this.baseUrl}/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages`;
 
-    console.log(
-      `Sending message to Chatwoot conversationId=${conversationId}, protocolo=${protocolo}, body: ${content}, url=${url},token=${this.apiToken}`,
+    this.logger.log(
+      `Sending message to Chatwoot conversationId=${conversationId}, protocolo=${protocolo}`,
     );
 
     try {
@@ -70,6 +71,73 @@ export class ChatwootApiService {
       );
 
       // Emite evento de falha para marcação no banco
+      if (protocolo) {
+        this.eventEmitter.emit('message.sync_failed', {
+          protocolo,
+          error: errorMessage,
+        });
+      }
+
+      return null;
+    }
+  }
+
+  /**
+   * Envia uma mensagem COM ANEXOS para uma conversa no Chatwoot.
+   * Usa multipart/form-data conforme exigido pela API do Chatwoot.
+   * O campo de arquivo é `attachments[]`.
+   */
+  async sendMessageWithAttachments(
+    conversationId: number,
+    content: string,
+    files: { buffer: Buffer; fileName: string; contentType: string }[],
+    protocolo?: string,
+    msgPrivate?: boolean,
+  ): Promise<Record<string, unknown> | null> {
+    const url = `${this.baseUrl}/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages`;
+
+    this.logger.log(
+      `Sending message with ${files.length} attachment(s) to Chatwoot conversationId=${conversationId}, protocolo=${protocolo}`,
+    );
+
+    try {
+      const formData = new FormData();
+      formData.append('content', content ?? '');
+      formData.append('message_type', 'outgoing');
+      formData.append('private', String(msgPrivate ?? false));
+
+      for (const file of files) {
+        formData.append('attachments[]', file.buffer, {
+          filename: file.fileName,
+          contentType: file.contentType,
+        });
+      }
+
+      const response = await firstValueFrom(
+        this.httpService.post(url, formData, {
+          headers: {
+            ...formData.getHeaders(),
+            api_access_token: this.apiToken,
+          },
+          timeout: 30000,
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+        }),
+      );
+
+      this.logger.log(
+        `Message with attachments sent to Chatwoot: conversationId=${conversationId}, chatwootMessageId=${response.data?.id}`,
+      );
+
+      return response.data as Record<string, unknown>;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Failed to send message with attachments to Chatwoot: conversationId=${conversationId}, error=${errorMessage}`,
+      );
+
       if (protocolo) {
         this.eventEmitter.emit('message.sync_failed', {
           protocolo,

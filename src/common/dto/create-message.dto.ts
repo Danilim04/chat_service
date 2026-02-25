@@ -1,9 +1,27 @@
 import {
+  IsArray,
   IsBoolean,
   IsNotEmpty,
   IsOptional,
   IsString,
 } from 'class-validator';
+
+export class CreateMessageAttachmentDto {
+  /** Conteúdo do arquivo em base64 */
+  @IsString()
+  @IsNotEmpty()
+  base64!: string;
+
+  /** Nome do arquivo (ex: 'foto.png') */
+  @IsString()
+  @IsNotEmpty()
+  fileName!: string;
+
+  /** MIME type do arquivo (ex: 'image/png') */
+  @IsString()
+  @IsNotEmpty()
+  contentType!: string;
+}
 
 export class CreateMessageDto {
   /** Protocolo do ticket ao qual a mensagem pertence */
@@ -13,7 +31,7 @@ export class CreateMessageDto {
 
   /** Conteúdo da mensagem */
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   mensagem!: string;
 
   /** Identificador do remetente */
@@ -35,4 +53,9 @@ export class CreateMessageDto {
   @IsBoolean()
   @IsOptional()
   isInterno?: boolean;
+
+  /** Anexos codificados em base64 (enviados pelo front-end via WebSocket) */
+  @IsArray()
+  @IsOptional()
+  anexos?: CreateMessageAttachmentDto[];
 }
