@@ -26,8 +26,7 @@ import { IChatMessage } from '../common/interfaces/message.interface.js';
   pingTimeout: 10000,
 })
 export class ChatGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
@@ -38,7 +37,7 @@ export class ChatGateway
     private readonly messagesService: MessagesService,
     private readonly sessionService: SessionService,
     private readonly chatwootApiService: ChatwootApiService,
-  ) {}
+  ) { }
 
   afterInit(server: Server): void {
     this.chatService.setServer(server);
@@ -141,7 +140,7 @@ export class ChatGateway
         senderIdentifier: data.reme,
         destIdentifier: data.dest,
         senderName: data.autor,
-        isInterno: data.isInterno,
+        isPrivate: data.isInterno,
       });
 
       if (!chatMessage) {

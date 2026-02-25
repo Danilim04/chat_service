@@ -16,9 +16,6 @@ export class ChatMessage {
   @Prop({ required: true })
   dt_env!: Date;
 
-  @Prop({ default: false })
-  isInterno!: boolean;
-
   @Prop({ required: true })
   autor!: string;
 
@@ -26,7 +23,10 @@ export class ChatMessage {
   mensagem!: string;
 
   @Prop({ default: false })
-  isPrivate?: boolean;
+  isInterno?: boolean;
+
+  @Prop()
+  anexo?: string[];
 
   // --- Campos Chatwoot (opcionais) ---
 

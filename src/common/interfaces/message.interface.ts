@@ -19,7 +19,7 @@ export interface IChatMessage {
   mensagem: string;
 
   /** Se a mensagem é privada (nota interna visível apenas para atendentes) */
-  isPrivate?: boolean;
+  isInterno?: boolean;
 
   // --- Campos Chatwoot (opcionais) ---
 

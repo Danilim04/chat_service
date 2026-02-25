@@ -45,12 +45,12 @@ export class MessagesService {
       reme: data.senderIdentifier,
       dest: data.destIdentifier,
       dt_env: new Date(),
-      isPrivate: false,
+      isInterno: data.isPrivate ?? false,
       autor: data.senderName,
       mensagem: data.content,
       chatwoot_message_id: data.chatwootMessageId,
       source: 'chatwoot',
-      ...(data.attachmentFileNames && data.attachmentFileNames.length > 0
+      ...(data.attachmentFileNames
         ? { anexo: data.attachmentFileNames }
         : {}),
     };
@@ -67,8 +67,7 @@ export class MessagesService {
       return null;
     }
 
-    // Persiste cada anexo no array `anexos` do documento raiz
-    if (data.attachmentFileNames && data.attachmentFileNames.length > 0) {
+    if (data.attachmentFileNames) {
       await this.messagesRepository.pushAnexos(
         data.protocolo,
         data.attachmentFileNames,
@@ -82,7 +81,6 @@ export class MessagesService {
       `Inbound message persisted: protocolo=${data.protocolo}, autor=${data.senderName}`,
     );
 
-    // Emite evento para o ChatGateway fazer broadcast
     this.eventEmitter.emit('message.created', {
       message: chatMessage,
       room: data.protocolo,
@@ -101,13 +99,13 @@ export class MessagesService {
     senderIdentifier: string;
     destIdentifier: string;
     senderName: string;
-    isInterno?: boolean;
+    isPrivate?: boolean;
   }): Promise<IChatMessage | null> {
     const chatMessage: IChatMessage = {
       reme: data.senderIdentifier,
       dest: data.destIdentifier,
       dt_env: new Date(),
-      isPrivate: data.isInterno ?? false,
+      isInterno: data.isPrivate ?? false,
       autor: data.senderName,
       mensagem: data.content,
       source: 'internal',
